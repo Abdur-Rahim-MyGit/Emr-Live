@@ -28,7 +28,7 @@ const app = express();
 
 // Middleware
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env.FRONTEND_URL || 'https://emr-frontend-nacv.onrender.com',
   credentials: true,
 };
 app.use(cors(corsOptions));

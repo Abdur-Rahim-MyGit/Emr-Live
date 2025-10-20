@@ -2619,7 +2619,7 @@ const DiagnosisHistoryTab = ({ patient }) => {
 
         // Fetch patient case log
         const response = await fetch(
-          `${(import.meta.env.VITE_API_URL || 'http://localhost:5001')}/api/patientCaseLogs/${patient._id}`,
+          `${(import.meta.env.VITE_API_URL || 'https://emr-backend-nhe8.onrender.com')}/api/patientCaseLogs/${patient._id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

@@ -176,7 +176,7 @@ const SuperMasterAdminDashboard = () => {
     const fetchData = async () => {
       try {
         console.log("Fetching Super Master Admin dashboard data...");
-        console.log("API Base URL:", `${(import.meta.env.VITE_API_URL || 'http://localhost:5001')}/api`);
+        console.log("API Base URL:", `${(import.meta.env.VITE_API_URL || 'https://emr-backend-nhe8.onrender.com')}/api`);
         console.log(
           "Token:",
           localStorage.getItem("token") ? "Token exists" : "No token"
@@ -309,7 +309,7 @@ const SuperMasterAdminDashboard = () => {
         // Get real lab tests from consultations
         let realLabTestsCount = 0;
         try {
-          const consultationsResponse = await fetch(`${(import.meta.env.VITE_API_URL || 'http://localhost:5001')}/api/consultations`, {
+          const consultationsResponse = await fetch(`${(import.meta.env.VITE_API_URL || 'https://emr-backend-nhe8.onrender.com')}/api/consultations`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
               'Content-Type': 'application/json'
@@ -337,7 +337,7 @@ const SuperMasterAdminDashboard = () => {
         
         // Additional direct count check for doctors to ensure accuracy
         try {
-          const directCountResponse = await fetch(`${(import.meta.env.VITE_API_URL || 'http://localhost:5001')}/api/doctors?limit=1`, {
+          const directCountResponse = await fetch(`${(import.meta.env.VITE_API_URL || 'https://emr-backend-nhe8.onrender.com')}/api/doctors?limit=1`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
               'Content-Type': 'application/json'
@@ -448,7 +448,7 @@ const SuperMasterAdminDashboard = () => {
             
             // Additional direct count check in fallback
             try {
-              const directCountResponse = await fetch(`${(import.meta.env.VITE_API_URL || 'http://localhost:5001')}/api/doctors?limit=1`, {
+              const directCountResponse = await fetch(`${(import.meta.env.VITE_API_URL || 'https://emr-backend-nhe8.onrender.com')}/api/doctors?limit=1`, {
                 headers: {
                   'Authorization': `Bearer ${localStorage.getItem('token')}`,
                   'Content-Type': 'application/json'
