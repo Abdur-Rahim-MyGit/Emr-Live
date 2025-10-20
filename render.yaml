@@ -34,7 +34,6 @@ services:
   - type: web
     name: emr-frontend
     env: static
-    plan: free
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: ./frontend/dist
     envVars:
