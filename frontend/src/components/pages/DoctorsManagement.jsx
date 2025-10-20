@@ -171,7 +171,7 @@ const DoctorsManagement = () => {
       
       // Test the debug endpoint first
       console.log('Testing debug endpoint...');
-      const testResponse = await fetch('http://localhost:5001/api/users/test-doctors');
+      const testResponse = await fetch(`${(import.meta.env.VITE_API_URL || 'http://localhost:5001')}/api/users/test-doctors`);
       
       if (!testResponse.ok) {
         throw new Error(`HTTP ${testResponse.status}: ${testResponse.statusText}`);
