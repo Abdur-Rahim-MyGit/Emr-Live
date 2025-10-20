@@ -41,6 +41,25 @@ const connectDB = require("./config/database");
 // Connect to MongoDB
 connectDB();
 
+// Root endpoint
+app.get("/", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "EMR Healthcare Backend API is running",
+    version: "1.0.0",
+    endpoints: {
+      health: "/api/auth/health",
+      auth: "/api/auth/*",
+      users: "/api/users/*",
+      patients: "/api/patients/*",
+      doctors: "/api/doctors/*",
+      appointments: "/api/appointments/*",
+      clinics: "/api/clinics/*"
+    },
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Health check endpoint
 app.get("/api/auth/health", (req, res) => {
   res.status(200).json({
