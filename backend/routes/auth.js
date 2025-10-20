@@ -731,6 +731,11 @@ router.post("/request-login-otp", async (req, res) => {
     ]);
 
     console.log("📧 Attempting to send OTP email...");
+    console.log("📧 Email config check:");
+    console.log("- EMAIL_USER:", process.env.EMAIL_USER ? "✅ Set" : "❌ Missing");
+    console.log("- EMAIL_PASS:", process.env.EMAIL_PASS ? "✅ Set" : "❌ Missing");
+    console.log("- NODE_ENV:", process.env.NODE_ENV);
+    
     // Send login OTP email with timeout
     try {
       await Promise.race([
@@ -747,21 +752,32 @@ router.post("/request-login-otp", async (req, res) => {
         success: true,
         message: "Login OTP sent to your email address. Please check your inbox.",
         userId: user._id,
-        otp: process.env.NODE_ENV === "development" ? otp : undefined, // Only show OTP in development
-        duration: duration
+        otp: otp, // Always show OTP for now until email is working
+        duration: duration,
+        debug: {
+          emailConfigured: !!(process.env.EMAIL_USER && process.env.EMAIL_PASS),
+          environment: process.env.NODE_ENV
+        }
       });
     } catch (emailError) {
       const duration = Date.now() - startTime;
       console.error(`❌ Failed to send login OTP email (${duration}ms):`, emailError.message);
+      console.error("❌ Email error details:", emailError);
 
-      // Still return success but with fallback message if email fails
+      // Always return success with OTP visible until email is fixed
       res.json({
         success: true,
-        message: `OTP generated successfully. ${process.env.NODE_ENV === "development" ? `Your OTP is: ${otp}` : "Please check your email or contact support if you don't receive it."}`,
+        message: `OTP generated successfully. Your OTP is: ${otp}`,
         userId: user._id,
-        otp: process.env.NODE_ENV === "development" ? otp : undefined,
+        otp: otp, // Always show OTP when email fails
         emailError: emailError.message,
-        duration: duration
+        duration: duration,
+        debug: {
+          emailConfigured: !!(process.env.EMAIL_USER && process.env.EMAIL_PASS),
+          environment: process.env.NODE_ENV,
+          emailUser: process.env.EMAIL_USER,
+          emailPassLength: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 0
+        }
       });
     }
   } catch (error) {

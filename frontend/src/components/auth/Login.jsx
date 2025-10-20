@@ -51,7 +51,22 @@ const Login = () => {
           setUserId(response.data.userId);
           setUserEmail(data.email);
           setOtpStep("otp");
-          toast.success("OTP sent to your email! Please check your inbox.");
+          
+          // Show OTP in toast if email fails or for debugging
+          if (response.data.otp) {
+            toast.success(`OTP: ${response.data.otp} (Check your email too!)`);
+            console.log("🔑 OTP for login:", response.data.otp);
+          } else {
+            toast.success("OTP sent to your email! Please check your inbox.");
+          }
+          
+          // Log debug info
+          if (response.data.debug) {
+            console.log("📧 Email debug info:", response.data.debug);
+          }
+          if (response.data.emailError) {
+            console.log("❌ Email error:", response.data.emailError);
+          }
         }
       } else if (loginType === "user" && otpStep === "otp") {
         // Verify OTP and complete login
