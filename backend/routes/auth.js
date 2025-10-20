@@ -650,6 +650,10 @@ router.post("/reset-password", async (req, res) => {
 
 // Request OTP for login
 router.post("/request-login-otp", async (req, res) => {
+  console.log("🔥 REQUEST-LOGIN-OTP ENDPOINT HIT!");
+  console.log("📋 Request method:", req.method);
+  console.log("📋 Request body:", req.body);
+  console.log("📋 Request headers:", req.headers);
   const startTime = Date.now();
   console.log("🔄 Starting login OTP request...");
   
@@ -1070,6 +1074,18 @@ router.get("/me", auth, async (req, res) => {
       error: error.message,
     });
   }
+});
+
+// Simple test endpoint
+router.get("/test", (req, res) => {
+  console.log("🧪 Test endpoint hit!");
+  res.json({
+    success: true,
+    message: "Auth routes are working!",
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    url: req.url
+  });
 });
 
 // Auth system health check
