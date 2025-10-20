@@ -27,26 +27,19 @@ services:
       - key: EMAIL_PORT
         sync: false
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: emr-frontend
-          property: url
+        sync: false
     healthCheckPath: /api/auth/health
 
   # Frontend Static Site
   - type: web
     name: emr-frontend
     env: static
-    region: singapore
     plan: free
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: emr-backend
-          property: url
+        sync: false
     routes:
       - type: rewrite
         source: /*
