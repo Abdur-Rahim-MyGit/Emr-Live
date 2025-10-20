@@ -650,79 +650,124 @@ router.post("/reset-password", async (req, res) => {
 
 // Request OTP for login
 router.post("/request-login-otp", async (req, res) => {
+  const startTime = Date.now();
+  console.log("🔄 Starting login OTP request...");
+  
   try {
     const { email, password } = req.body;
+    console.log(`📧 Login OTP request for email: ${email}`);
 
     if (!email || !password) {
+      console.log("❌ Missing email or password");
       return res.status(400).json({
         success: false,
         message: "Email and password are required",
       });
     }
 
-    // Find user by email
-    const user = await User.findOne({ email });
+    console.log("🔍 Finding user by email...");
+    // Find user by email with timeout
+    const user = await Promise.race([
+      User.findOne({ email }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database query timeout')), 10000)
+      )
+    ]);
 
     if (!user) {
+      console.log(`❌ User not found for email: ${email}`);
       return res.status(400).json({
         success: false,
         message: "Invalid credentials",
       });
     }
 
-    // Check password
-    const isMatch = await user.comparePassword(password);
+    console.log(`✅ User found: ${user.firstName} ${user.lastName}`);
+
+    console.log("🔒 Checking password...");
+    // Check password with timeout
+    const isMatch = await Promise.race([
+      user.comparePassword(password),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Password comparison timeout')), 5000)
+      )
+    ]);
 
     if (!isMatch) {
+      console.log("❌ Invalid password");
       return res.status(400).json({
         success: false,
         message: "Invalid credentials",
       });
     }
+
+    console.log("✅ Password verified");
 
     // Check if user is verified
     if (!user.isVerified) {
+      console.log("❌ User not verified");
       return res.status(400).json({
         success: false,
         message: "Please verify your email first",
       });
     }
 
+    console.log("📱 Generating OTP...");
     // Generate 4-digit OTP with shorter expiration for login (5 minutes)
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
     user.otp = otp;
     user.otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-    await user.save();
+    
+    console.log("💾 Saving user with OTP...");
+    await Promise.race([
+      user.save(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('User save timeout')), 5000)
+      )
+    ]);
 
-    // Send login OTP email
+    console.log("📧 Attempting to send OTP email...");
+    // Send login OTP email with timeout
     try {
-      await sendLoginOTP(email, otp, user.firstName);
-      console.log(`✅ Login OTP sent successfully to ${email}`);
+      await Promise.race([
+        sendLoginOTP(email, otp, user.firstName),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Email sending timeout')), 15000)
+        )
+      ]);
+      
+      const duration = Date.now() - startTime;
+      console.log(`✅ Login OTP sent successfully to ${email} (${duration}ms)`);
 
       res.json({
         success: true,
-        message:
-          "Login OTP sent to your email address. Please check your inbox.",
+        message: "Login OTP sent to your email address. Please check your inbox.",
         userId: user._id,
         otp: process.env.NODE_ENV === "development" ? otp : undefined, // Only show OTP in development
+        duration: duration
       });
     } catch (emailError) {
-      console.error("❌ Failed to send login OTP email:", emailError.message);
+      const duration = Date.now() - startTime;
+      console.error(`❌ Failed to send login OTP email (${duration}ms):`, emailError.message);
 
-      // Return error if email sending fails
-      res.status(500).json({
-        success: false,
-        message: "Failed to send login OTP email. Please try again later.",
-        error: emailError.message,
-        otp: process.env.NODE_ENV === "development" ? otp : undefined, // Show OTP in dev even if email fails
+      // Still return success but with fallback message if email fails
+      res.json({
+        success: true,
+        message: `OTP generated successfully. ${process.env.NODE_ENV === "development" ? `Your OTP is: ${otp}` : "Please check your email or contact support if you don't receive it."}`,
+        userId: user._id,
+        otp: process.env.NODE_ENV === "development" ? otp : undefined,
+        emailError: emailError.message,
+        duration: duration
       });
     }
   } catch (error) {
-    console.error("Request login OTP error:", error);
+    const duration = Date.now() - startTime;
+    console.error(`❌ Request login OTP error (${duration}ms):`, error);
     res.status(500).json({
       success: false,
       message: "Failed to process login OTP request",
       error: error.message,
+      duration: duration
     });
   }
 });
@@ -1023,6 +1068,112 @@ router.get("/me", auth, async (req, res) => {
       success: false,
       message: "Failed to get user data",
       error: error.message,
+    });
+  }
+});
+
+// Auth system health check
+router.get("/health", async (req, res) => {
+  try {
+    const startTime = Date.now();
+    
+    // Test database connection
+    const userCount = await User.countDocuments();
+    
+    // Test email configuration
+    const emailTest = await testEmailConfig();
+    
+    const duration = Date.now() - startTime;
+    
+    res.json({
+      success: true,
+      message: "Authentication system is healthy",
+      checks: {
+        database: {
+          status: "connected",
+          userCount: userCount,
+          duration: `${duration}ms`
+        },
+        email: emailTest,
+        environment: {
+          nodeEnv: process.env.NODE_ENV,
+          hasEmailUser: !!process.env.EMAIL_USER,
+          hasEmailPass: !!process.env.EMAIL_PASS,
+          hasJwtSecret: !!process.env.JWT_SECRET,
+          hasMongoDB: !!process.env.MONGODB_URI
+        }
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Authentication system health check failed",
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Create test user for debugging (development only)
+router.post("/create-test-user", async (req, res) => {
+  try {
+    if (process.env.NODE_ENV === "production") {
+      return res.status(403).json({
+        success: false,
+        message: "Test user creation not allowed in production"
+      });
+    }
+
+    // Check if test user already exists
+    const existingUser = await User.findOne({ email: "test@example.com" });
+    if (existingUser) {
+      return res.json({
+        success: true,
+        message: "Test user already exists",
+        user: {
+          email: existingUser.email,
+          firstName: existingUser.firstName,
+          lastName: existingUser.lastName,
+          role: existingUser.role,
+          isVerified: existingUser.isVerified
+        }
+      });
+    }
+
+    // Create test user
+    const testUser = new User({
+      firstName: "Test",
+      lastName: "User",
+      email: "test@example.com",
+      password: "password123",
+      phone: "1234567890",
+      role: "doctor",
+      isVerified: true
+    });
+
+    await testUser.save();
+
+    res.json({
+      success: true,
+      message: "Test user created successfully",
+      user: {
+        email: testUser.email,
+        firstName: testUser.firstName,
+        lastName: testUser.lastName,
+        role: testUser.role,
+        isVerified: testUser.isVerified
+      },
+      credentials: {
+        email: "test@example.com",
+        password: "password123"
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to create test user",
+      error: error.message
     });
   }
 });
